@@ -43,6 +43,4 @@ For service layer, it provides the following APIs:
 
 #### To Execute
 
-run junit test for all the APIs
-
-> mvn Test
+Open the project in IntelliJ with Maven build. Run junit test for all the APIs
