@@ -5,12 +5,10 @@ import java.time.OffsetDateTime;
 public class Token {
     private String tokenName;
 
-    private String userName;
     private OffsetDateTime expiredTime;
 
-    public Token(String tokenName, String userName, OffsetDateTime expiredTime) {
+    public Token(String tokenName, OffsetDateTime expiredTime) {
         this.tokenName = tokenName;
-        this.userName = userName;
         this.expiredTime = expiredTime;
     }
 
@@ -20,14 +18,6 @@ public class Token {
 
     public void setTokenName(String tokenName) {
         this.tokenName = tokenName;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
     }
 
     public OffsetDateTime getExpiredTime() {

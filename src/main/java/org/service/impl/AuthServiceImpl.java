@@ -6,9 +6,11 @@ import org.entity.Token;
 import org.entity.User;
 import org.repository.RoleRepository;
 import org.repository.TokenRepository;
+import org.repository.TokenUserRepository;
 import org.repository.UserRepository;
 import org.repository.impl.RoleRepositoryImpl;
 import org.repository.impl.TokenRepositoryImpl;
+import org.repository.impl.TokenUserRepositoryImpl;
 import org.repository.impl.UserRepositoryImpl;
 import org.service.AuthService;
 import org.service.util.EncryptUtils;
@@ -22,6 +24,8 @@ public class AuthServiceImpl implements AuthService {
     private UserRepository userRepository;
     private RoleRepository roleRepository;
     private TokenRepository tokenRepository;
+
+    private TokenUserRepository tokenUserRepository;
     private EncryptUtils encryptUtils;
 
     private long tokenExpireSecond = 2 * 60 * 60;
@@ -30,13 +34,17 @@ public class AuthServiceImpl implements AuthService {
         this.userRepository = new UserRepositoryImpl();
         this.roleRepository = new RoleRepositoryImpl();
         this.tokenRepository = new TokenRepositoryImpl();
+        this.tokenUserRepository = new TokenUserRepositoryImpl();
         this.encryptUtils = new EncryptUtils();
     }
 
-    public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository, TokenRepository tokenRepository, EncryptUtils encryptUtils) {
+    public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
+                           TokenRepository tokenRepository, TokenUserRepository tokenUserRepository,
+                           EncryptUtils encryptUtils) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.tokenRepository = tokenRepository;
+        this.tokenUserRepository = tokenUserRepository;
         this.encryptUtils = encryptUtils;
     }
 
@@ -64,8 +72,8 @@ public class AuthServiceImpl implements AuthService {
         if(!userRepository.userExists(userName)) {
             throw new IllegalArgumentException("User doesn't exists");
         }
-        User user = userRepository.getUser(userName);
-        String tokenName = user.getTokenName();
+        String tokenName = tokenUserRepository.getTokenByUser(userName);
+        tokenUserRepository.deleteRelationByUser(userName);
         tokenRepository.deleteToken(tokenName);
         userRepository.deleteUser(userName);
     }
@@ -128,14 +136,15 @@ public class AuthServiceImpl implements AuthService {
         if(!encryptedPassword.equals(user.getPassword())) {
             throw new IllegalArgumentException("Password doesn't match");
         }
-        if(Objects.nonNull(user.getTokenName())) {
-            String tokenName = user.getTokenName();
+        String tokenName = tokenUserRepository.getTokenByUser(userName);
+        if(Objects.nonNull(tokenName)) {
+            tokenUserRepository.deleteRelationByToken(tokenName);
             tokenRepository.deleteToken(tokenName);
         }
-        String tokenName = encryptUtils.encrypt(userName) + UUID.randomUUID();
-        Token token = new Token(tokenName, userName, OffsetDateTime.now().plusSeconds(tokenExpireSecond));
+        tokenName = encryptUtils.encrypt(userName) + UUID.randomUUID();
+        Token token = new Token(tokenName, OffsetDateTime.now().plusSeconds(tokenExpireSecond));
         tokenRepository.addToken(token);
-        user.setTokenName(tokenName);
+        tokenUserRepository.addRelation(tokenName, userName);
         return tokenName;
     }
 
@@ -145,13 +154,10 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public void invalidate(@NonNull String tokenName) {
-        if(!tokenRepository.tokenExists(tokenName)) {
+        if(!tokenRepository.tokenExists(tokenName) || !tokenUserRepository.relationExistsByToken(tokenName)) {
             throw new IllegalArgumentException("Token doesn't exist");
         }
-        Token token = tokenRepository.getToken(tokenName);
-        String userName = token.getUserName();
-        User user = userRepository.getUser(userName);
-        user.removeToken();
+        tokenUserRepository.deleteRelationByToken(tokenName);
         tokenRepository.deleteToken(tokenName);
     }
 
@@ -170,7 +176,7 @@ public class AuthServiceImpl implements AuthService {
         if (OffsetDateTime.now().isAfter(token.getExpiredTime())) {
             throw new IllegalArgumentException("Token is expired");
         }
-        String userName = token.getUserName();
+        String userName = tokenUserRepository.getUserByToken(tokenName);
         User user = userRepository.getUser(userName);
         Set<String> roles = user.getRoles();
         return roles.contains(roleName);
@@ -190,7 +196,7 @@ public class AuthServiceImpl implements AuthService {
         if (OffsetDateTime.now().isAfter(token.getExpiredTime())) {
             throw new IllegalArgumentException("Token is expired");
         }
-        String userName = token.getUserName();
+        String userName = tokenUserRepository.getUserByToken(tokenName);
         User user = userRepository.getUser(userName);
         Set<String> roles = user.getRoles();
         return roles;

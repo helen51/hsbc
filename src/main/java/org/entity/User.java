@@ -11,13 +11,10 @@ public class User {
     private String password;
     private Set<String> roles;
 
-    private String tokenName;
-
     public User(String userName, String password) {
         this.userName = userName;
         this.password = password;
         this.roles = new HashSet<>();
-        this.tokenName = null;
     }
 
     public String getUserName() {
@@ -44,19 +41,8 @@ public class User {
         this.roles = roles;
     }
 
-    public String getTokenName() {
-        return tokenName;
-    }
-
-    public void setTokenName(String tokenName) {
-        this.tokenName = tokenName;
-    }
-
     public void addRole(String roleName) {
         this.roles.add(roleName);
     }
 
-    public void removeToken() {
-        this.tokenName = null;
-    }
 }
