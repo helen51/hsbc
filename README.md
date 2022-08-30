@@ -37,6 +37,9 @@ For service layer, it provides the following APIs:
 
 *（setTokenExpireSecond api is created here for Junit test purpose. It can modify the default expiring time of token in second unit);
 
+#### Design
+
+![Design diagram](https://github.com/helen51/hsbc/blob/main/src/main/resources/design.png)
 
 #### To Execute
 
